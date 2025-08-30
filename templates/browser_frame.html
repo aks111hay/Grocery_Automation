@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Browser View</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        #browser-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #browser-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b5cf6;
+            font-family: 'Segoe UI', sans-serif;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top: 3px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            color: #dc2626;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="browser-container">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div>Connecting to live browser...</div>
+        </div>
+        
+        <iframe id="browser-iframe" src="about:blank"></iframe>
+    </div>
+
+    <script>
+        // Use window properties to avoid redeclaration errors
+        window.browserConfig = window.browserConfig || {
+            port: {{ port }},
+            sessionId: "{{ session_id }}"
+        };
+        
+        const iframe = document.getElementById('browser-iframe');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        async function connectToBrowser() {
+            try {
+                // First, get the list of available tabs
+                const response = await fetch(`http://localhost:${window.browserConfig.port}/json`);
+                const tabs = await response.json();
+                
+                if (tabs && tabs.length > 0) {
+                    // Use the first tab or find the active one
+                    const activeTab = tabs.find(tab => tab.type === 'page') || tabs[0];
+                    
+                    if (activeTab && activeTab.devtoolsFrontendUrl) {
+                        // Load the DevTools frontend URL
+                        const devtoolsUrl = `http://localhost:${window.browserConfig.port}${activeTab.devtoolsFrontendUrl}`;
+                        iframe.src = devtoolsUrl;
+                        
+                        iframe.onload = function() {
+                            loadingOverlay.classList.add('hidden');
+                        };
+                        
+                        iframe.onerror = function() {
+                            showError('Failed to load browser interface');
+                        };
+                    } else {
+                        showError('No active browser tab found');
+                    }
+                } else {
+                    showError('No browser tabs available');
+                }
+            } catch (error) {
+                console.error('Error connecting to browser:', error);
+                showError('Failed to connect to browser: ' + error.message);
+            }
+        }
+        
+        function showError(message) {
+            loadingOverlay.innerHTML = `
+                <div class="error-message">
+                    <h3>Browser Connection Error</h3>
+                    <p>${message}</p>
+                    <button onclick="location.reload()" style="
+                        background: #8b5cf6; 
+                        color: white; 
+                        border: none; 
+                        padding: 10px 20px; 
+                        border-radius: 5px; 
+                        cursor: pointer;
+                        margin-top: 10px;
+                    ">Retry</button>
+                </div>
+            `;
+        }
+        
+        // Try to connect when page loads
+        window.addEventListener('load', function() {
+            setTimeout(connectToBrowser, 1000); // Wait a bit for browser to be ready
+        });
+        
+        // Retry connection every 5 seconds if failed
+        setInterval(function() {
+            if (iframe.src === 'about:blank' || iframe.src === '') {
+                connectToBrowser();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

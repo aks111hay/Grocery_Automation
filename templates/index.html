@@ -1,1 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Agent Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b3d 50%, #1a1a1a 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.8);
+            border-right: 2px solid #8b5cf6;
+        }
+
+        .browser-panel {
+            flex: 1;
+            background: #1a1a1a;
+            border-left: 2px solid #8b5cf6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #6b46c1, #8b5cf6);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant, .message.tool {
+            text-align: left;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #8b5cf6, #6b46c1);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: linear-gradient(135deg, #374151, #4b5563);
+            color: #e5e7eb;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.tool .message-content {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: #d1fae5;
+            border-bottom-left-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .message.tool .message-content pre {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .json-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .json-key {
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        .json-string {
+            color: #34d399;
+        }
+
+        .json-number {
+            color: #fbbf24;
+        }
+
+        .json-boolean {
+            color: #f87171;
+        }
+
+        .json-null {
+            color: #9ca3af;
+        }
+
+        .json-bracket {
+            color: #e5e7eb;
+            font-weight: bold;
+        }
+
+        .product-card {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-name {
+            color: #34d399;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .product-price {
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .merchant-header {
+            color: #60a5fa;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .total-price {
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 10px 0;
+            text-align: center;
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .message.error .message-content {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: #fecaca;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid #8b5cf6;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #8b5cf6;
+            border-radius: 25px;
+            background: rgba(139, 92, 246, 0.1);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.2);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #8b5cf6, #6b46c1);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .browser-header {
+            background: linear-gradient(90deg, #6b46c1, #8b5cf6);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .browser-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .browser-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: #dc2626;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .browser-content {
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .browser-placeholder {
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .browser-placeholder i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .browser-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .loading-indicator {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8b5cf6;
+            text-align: center;
+        }
+
+        .loading-indicator.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top: 3px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            color: #8b5cf6;
+            font-style: italic;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #8b5cf6;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a855f7;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .browser-panel {
+                border-left: none;
+                border-top: 2px solid #8b5cf6;
+            }
+            
+            .message-content {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h1><i class="fas fa-robot"></i> Shopping Agent</h1>
+                <p>Your AI assistant for Blinkit & Zepto shopping</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        👋 Hello! I'm your shopping agent. I can help you search and compare products on Blinkit and Zepto. 
+                        <br><br>
+                        The live browser will appear on the right when tools are running.
+                        <br><br>
+                        Try saying: <em>"Search for milk and bread on Blinkit and zepto with phone 9334727093 and address 560102"</em>
+                    </div>
+                    <div class="message-time">Just now</div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <i class="fas fa-circle-notch fa-spin"></i> Agent is thinking...
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" id="messageInput" class="chat-input" 
+                           placeholder="Type your message here..." 
+                           autocomplete="off">
+                    <button id="sendButton" class="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="browser-panel">
+            <div class="browser-header">
+                <h2><i class="fas fa-globe"></i> Live Browser</h2>
+                <div class="browser-status">
+                    <div class="status-indicator" id="browserStatusIndicator"></div>
+                    <span id="browserStatusText">Initializing...</span>
+                </div>
+            </div>
+            
+            <div class="browser-content" id="browserContent">
+                <div class="browser-placeholder" id="browserPlaceholder">
+                    <i class="fas fa-desktop"></i>
+                    <h3>Live Browser View</h3>
+                    <p>The Playwright browser will appear here when automation starts</p>
+                </div>
+                
+                <div class="loading-indicator" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <div>Starting browser session...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ChatApp {
+            constructor() {
+                this.socket = io();
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.typingIndicator = document.getElementById('typingIndicator');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.browserContent = document.getElementById('browserContent');
+                this.loadingIndicator = document.getElementById('loadingIndicator');
+                this.browserPlaceholder = document.getElementById('browserPlaceholder');
+                this.browserStatusIndicator = document.getElementById('browserStatusIndicator');
+                this.browserStatusText = document.getElementById('browserStatusText');
+                
+                this.sessionId = null;
+                this.browserUrl = null;
+                
+                this.initializeEventListeners();
+                this.setupSocketEvents();
+            }
+            
+            initializeEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+            
+            setupSocketEvents() {
+                this.socket.on('connect', () => {
+                    this.updateConnectionStatus(true);
+                    this.loadingIndicator.classList.add('active');
+                });
+                
+                this.socket.on('disconnect', () => {
+                    this.updateConnectionStatus(false);
+                    this.updateBrowserStatus('disconnected', 'Disconnected');
+                });
+                
+                this.socket.on('session_created', (data) => {
+                    console.log('Session created:', data);
+                    this.sessionId = data.session_id;
+                    this.browserUrl = data.browser_url;
+                    
+                    if (data.browser_port) {
+                        this.loadBrowser(data.browser_url);
+                        this.updateBrowserStatus('connected', 'Live');
+                    } else {
+                        this.updateBrowserStatus('error', 'Failed to start');
+                    }
+                    
+                    this.loadingIndicator.classList.remove('active');
+                });
+                
+                this.socket.on('message_received', (data) => {
+                    this.hideTypingIndicator();
+                    this.addMessage(data.role, data.content, data.timestamp);
+                });
+                
+                this.socket.on('browser_activity', (data) => {
+                    this.updateBrowserStatus('active', 'Active');
+                    console.log('Browser activity:', data.message);
+                });
+                
+                this.socket.on('error', (data) => {
+                    this.hideTypingIndicator();
+                    this.addMessage('error', data.message);
+                });
+            }
+            
+            loadBrowser(browserUrl) {
+                if (!browserUrl) return;
+                
+                // Create iframe for live browser
+                const iframe = document.createElement('iframe');
+                iframe.className = 'browser-iframe';
+                iframe.src = browserUrl;
+                iframe.allow = 'camera; microphone; display-capture';
+                
+                // Replace placeholder with iframe
+                this.browserContent.innerHTML = '';
+                this.browserContent.appendChild(iframe);
+                
+                iframe.onload = () => {
+                    console.log('Browser iframe loaded');
+                    this.updateBrowserStatus('connected', 'Live');
+                };
+                
+                iframe.onerror = () => {
+                    console.error('Failed to load browser iframe');
+                    this.updateBrowserStatus('error', 'Connection failed');
+                    this.showBrowserError('Failed to connect to live browser');
+                };
+            }
+            
+            showBrowserError(message) {
+                this.browserContent.innerHTML = `
+                    <div class="browser-placeholder">
+                        <i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>
+                        <h3>Browser Connection Error</h3>
+                        <p>${message}</p>
+                        <button onclick="location.reload()" style="
+                            background: #8b5cf6; 
+                            color: white; 
+                            border: none; 
+                            padding: 10px 20px; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            margin-top: 10px;
+                        ">Retry</button>
+                    </div>
+                `;
+            }
+            
+            updateBrowserStatus(status, text) {
+                this.browserStatusText.textContent = text;
+                this.browserStatusIndicator.className = `status-indicator ${status}`;
+            }
+            
+            sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message) return;
+                
+                this.socket.emit('send_message', { message });
+                this.messageInput.value = '';
+                this.showTypingIndicator();
+                this.sendButton.disabled = true;
+                
+                setTimeout(() => {
+                    this.sendButton.disabled = false;
+                }, 1000);
+            }
+            
+            addMessage(role, content, timestamp = Date.now()) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.innerHTML = this.formatMessageContent(content, role);
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = new Date(timestamp * 1000).toLocaleTimeString();
+                
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+            
+            formatMessageContent(content, role) {
+                if (role === 'tool') {
+                    return this.formatToolOutput(content);
+                }
+                return content.replace(/\n/g, '<br>');
+            }
+
+            formatToolOutput(content) {
+                try {
+                    // Try to parse as JSON
+                    const parsed = JSON.parse(content);
+                    
+                    // Check if it's a shopping result format
+                    if (parsed.merchant && parsed.cart_items && Array.isArray(parsed.cart_items)) {
+                        return this.formatShoppingResult(parsed);
+                    }
+                    
+                    // For other JSON, use syntax highlighting
+                    return `<div class="json-container">${this.syntaxHighlightJSON(parsed)}</div>`;
+                    
+                } catch (e) {
+                    // If not JSON, return as-is with line breaks
+                    return content.replace(/\n/g, '<br>');
+                }
+            }
+
+            formatShoppingResult(data) {
+                let html = `<div class="merchant-header">${data.merchant}</div>`;
+                
+                if (data.total) {
+                    html += `<div class="total-price">Total: ₹${data.total}</div>`;
+                }
+                
+                if (data.cart_items && data.cart_items.length > 0) {
+                    data.cart_items.forEach(item => {
+                        html += `
+                            <div class="product-card">
+                                <div class="product-name">${item.name}</div>
+                                <div class="product-price">₹${item.price}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div style="color: #9ca3af; font-style: italic;">No items found</div>';
+                }
+                
+                return html;
+            }
+
+            syntaxHighlightJSON(obj) {
+                const jsonString = JSON.stringify(obj, null, 2);
+                return jsonString
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                        let cls = 'json-number';
+                        if (/^"/.test(match)) {
+                            if (/:$/.test(match)) {
+                                cls = 'json-key';
+                            } else {
+                                cls = 'json-string';
+                            }
+                        } else if (/true|false/.test(match)) {
+                            cls = 'json-boolean';
+                        } else if (/null/.test(match)) {
+                            cls = 'json-null';
+                        }
+                        return '<span class="' + cls + '">' + match + '</span>';
+                    })
+                    .replace(/([{}[\]])/g, '<span class="json-bracket">$1</span>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/\s/g, '&nbsp;');
+            }
+            
+            showTypingIndicator() {
+                this.typingIndicator.classList.add('active');
+                this.scrollToBottom();
+            }
+            
+            hideTypingIndicator() {
+                this.typingIndicator.classList.remove('active');
+            }
+            
+            updateConnectionStatus(connected) {
+                this.connectionStatus.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+                this.connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+            }
+            
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }, 100);
+            }
+        }
+        
+        // Initialize the chat app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatApp();
+        });
+    </script>
+</body>
+</html>
