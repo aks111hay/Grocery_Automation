@@ -9,6 +9,13 @@ This project is a Grocery Automation tool that helps users compare prices and or
 - Handles user login and OTP verification.
 - Interactive chat interface for a seamless user experience.
 - Saves comparison results for future reference.
+  
+## Technologies Used
+
+- **Backend:** Flask, Flask-SocketIO
+- **AI & Agents:** Langchain, Langgraph
+- **Browser Automation:** Playwright, Browserbase
+- **Programming Language:** Python
 
 ## Installation
 
@@ -49,13 +56,13 @@ This project is a Grocery Automation tool that helps users compare prices and or
 Here are some screenshots of the application in action:
 
 ![Screenshot 1](https://github.com/aks111hay/Grocery_Automation/blob/main/screenshot_1.jpg)
-*Caption for screenshot 1*
+*outputs*
 
 ![Screenshot 2](https://github.com/aks111hay/Grocery_Automation/blob/main/screenshot_1.jpg)
-*Caption for screenshot 2*
+*outputs*
 
 ![Screenshot 3](https://github.com/aks111hay/Grocery_Automation/blob/main/screenshot_1.jpg)
-*Caption for screenshot 3*
+*outputs*
 
 ## Contributing
 
