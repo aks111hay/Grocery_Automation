@@ -1,0 +1,11 @@
+flask==2.3.3
+flask-socketio==5.3.6
+python-socketio==5.8.0
+langchain==0.1.0
+langgraph==0.0.40
+playwright==1.40.0
+browserbase==0.2.0
+python-dotenv==1.0.0
+pydantic==2.5.0
+requests==2.31.0
+tenacity==8.2.3

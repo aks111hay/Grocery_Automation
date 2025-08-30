@@ -1,0 +1,59 @@
+{
+  "zepto": {
+    "merchant": "zepto",
+    "total": 668.71,
+    "cart_items": [
+      {
+        "name": "milk",
+        "price": 144.35
+      },
+      {
+        "name": "bread",
+        "price": 187.75
+      },
+      {
+        "name": "eggs",
+        "price": 106.81
+      },
+      {
+        "name": "butter",
+        "price": 65.26
+      },
+      {
+        "name": "cheese",
+        "price": 164.54
+      }
+    ]
+  },
+  "blinkit": {
+    "merchant": "blinkit",
+    "total": 876.26,
+    "cart_items": [
+      {
+        "name": "milk",
+        "price": 194.65
+      },
+      {
+        "name": "bread",
+        "price": 179.19
+      },
+      {
+        "name": "eggs",
+        "price": 209.89
+      },
+      {
+        "name": "butter",
+        "price": 142.77
+      },
+      {
+        "name": "cheese",
+        "price": 149.76
+      }
+    ]
+  },
+  "comparison": {
+    "cheaper": "zepto",
+    "difference": 207.55,
+    "percent": 23.69
+  }
+}
