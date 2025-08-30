@@ -48,13 +48,13 @@ This project is a Grocery Automation tool that helps users compare prices and or
 
 Here are some screenshots of the application in action:
 
-![Screenshot 1](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_1.png)
+![Screenshot 1](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_1.jpg)
 *Caption for screenshot 1*
 
-![Screenshot 2](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_2.png)
+![Screenshot 2](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_2.jpg)
 *Caption for screenshot 2*
 
-![Screenshot 3](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_3.png)
+![Screenshot 3](https://raw.githubusercontent.com/aks111hay/grocery-automation/main/screenshot_3.jpg)
 *Caption for screenshot 3*
 
 ## Contributing
